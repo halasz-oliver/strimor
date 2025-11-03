@@ -31,7 +31,12 @@ jobs:
 
       - name: Update README
         run: |
-          sed -i '/<!-- BENCHMARK_START -->/,/<!-- BENCHMARK_END -->/c\<!-- BENCHMARK_START -->\n```\n'"$(cat build/benchmark_results.txt)"'\n```\n<!-- BENCHMARK_END -->' README.md
+          awk '
+          /<!-- BENCHMARK_START -->/ {print; print "```"; system("cat build/benchmark_results.txt"); print "```"; f=1; next}
+          /<!-- BENCHMARK_END -->/ {print; f=0; next}
+          !f
+          ' README.md > README_tmp.md
+          mv README_tmp.md README.md
 
       - name: Commit results
         run: |
