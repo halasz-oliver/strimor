@@ -6,10 +6,13 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
   benchmark:
     runs-on: ubuntu-latest
-
+    
     steps:
       - uses: actions/checkout@v3
 
@@ -31,22 +34,26 @@ jobs:
 
       - name: Update README
         run: |
-          awk '
-          /<!-- BENCHMARK_START -->/ {print; print "```"; system("cat build/benchmark_results.txt"); print "```"; f=1; next}
-          /<!-- BENCHMARK_END -->/ {print; f=0; next}
-          !f
-          ' README.md > README_tmp.md
-          mv README_tmp.md README.md
+          python3 << 'EOF'
+          with open('build/benchmark_results.txt', 'r') as f:
+              results = f.read()
+          
+          with open('README.md', 'r') as f:
+              readme = f.read()
+          
+          start = readme.find('<!-- BENCHMARK_START -->')
+          end = readme.find('<!-- BENCHMARK_END -->') + len('<!-- BENCHMARK_END -->')
+          
+          new_section = f'<!-- BENCHMARK_START -->\n```\n{results}\n```\n<!-- BENCHMARK_END -->'
+          updated = readme[:start] + new_section + readme[end:]
+          
+          with open('README.md', 'w') as f:
+              f.write(updated)
+          EOF
 
       - name: Commit results
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add README.md
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update benchmark results"
-
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update benchmark results" && git push)
