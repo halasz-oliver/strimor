@@ -1,0 +1,47 @@
+name: Benchmark
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install libsodium
+        run: sudo apt-get update && sudo apt-get install -y libsodium-dev
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          make
+
+      - name: Run benchmark
+        run: |
+          cd build
+          ./strimor_benchmark > benchmark_results.txt
+          cat benchmark_results.txt
+
+      - name: Update README
+        run: |
+          sed -i '/<!-- BENCHMARK_START -->/,/<!-- BENCHMARK_END -->/c\<!-- BENCHMARK_START -->\n```\n'"$(cat build/benchmark_results.txt)"'\n```\n<!-- BENCHMARK_END -->' README.md
+
+      - name: Commit results
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add README.md
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update benchmark results"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}

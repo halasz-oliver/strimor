@@ -12,7 +12,6 @@ pkg_check_modules(SODIUM libsodium)
 if (SODIUM_FOUND)
     message(STATUS "Found libsodium via pkg-config")
     set(SODIUM_INCLUDE_DIR ${SODIUM_INCLUDE_DIRS})
-    # Instead of passing -lsodium, use the full path to the dylib
     find_library(SODIUM_LIB_PATH sodium HINTS ${SODIUM_LIBRARY_DIRS} PATH_SUFFIXES lib)
 else()
     message(STATUS "Using Homebrew libsodium fallback")
@@ -23,6 +22,12 @@ endif()
 message(STATUS "libsodium include: ${SODIUM_INCLUDE_DIR}")
 message(STATUS "libsodium library: ${SODIUM_LIB_PATH}")
 
+# Example executable
 add_executable(strimor_example example.cpp)
 target_include_directories(strimor_example PRIVATE ${SODIUM_INCLUDE_DIR})
 target_link_libraries(strimor_example PRIVATE ${SODIUM_LIB_PATH})
+
+# Benchmark executable
+add_executable(strimor_benchmark benchmark.cpp)
+target_include_directories(strimor_benchmark PRIVATE ${SODIUM_INCLUDE_DIR})
+target_link_libraries(strimor_benchmark PRIVATE ${SODIUM_LIB_PATH})

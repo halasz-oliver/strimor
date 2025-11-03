@@ -126,6 +126,24 @@ This was mainly a learning exercise to understand how authenticated streaming en
 
 ---
 
+## Performance
+
+Benchmarks run automatically on every commit (Ubuntu latest, GitHub Actions):
+
+<!-- BENCHMARK_START -->
+```
+Benchmark here
+```
+<!-- BENCHMARK_END -->
+
+Run benchmarks locally:
+```bash
+cd build
+./strimor_benchmark
+```
+
+---
+
 ## License
 
 MIT - do whatever you want with it, just don't blame me if something breaks.
