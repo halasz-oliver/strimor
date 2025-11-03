@@ -132,7 +132,17 @@ Benchmarks run automatically on every commit (Ubuntu latest, GitHub Actions):
 
 <!-- BENCHMARK_START -->
 ```
-Benchmark here
+Strimor Benchmark Results
+=========================
+
+Data Size  | Encrypt Time | Encrypt Speed | Decrypt Time | Decrypt Speed
+-----------|--------------|---------------|--------------|---------------
+         1 KB |       18 μs |    54.25 MB/s |        2 μs |   488.28 MB/s
+        10 KB |       14 μs |   697.54 MB/s |       11 μs |   887.78 MB/s
+       100 KB |      115 μs |   849.18 MB/s |      119 μs |   820.64 MB/s
+      1024 KB |     1212 μs |   825.08 MB/s |     1238 μs |   807.75 MB/s
+     10240 KB |     9562 μs |  1045.81 MB/s |     9477 μs |  1055.19 MB/s
+
 ```
 <!-- BENCHMARK_END -->
 
