@@ -182,11 +182,19 @@ The main goal was to understand how authenticated streaming encryption actually 
 Benchmarks run automatically on GitHub Actions (Ubuntu latest):
 
 <!-- BENCHMARK_START -->
+```
+Strimor Benchmark Results
+=========================
+
+Data Size  | Encrypt Time | Encrypt Speed | Decrypt Time | Decrypt Speed
+-----------|--------------|---------------|--------------|---------------
+         1 KB |       20 μs |    48.83 MB/s |        2 μs |   488.28 MB/s
+        10 KB |       13 μs |   751.20 MB/s |       11 μs |   887.78 MB/s
+       100 KB |      115 μs |   849.18 MB/s |      122 μs |   800.46 MB/s
+      1024 KB |     1216 μs |   822.37 MB/s |     1215 μs |   823.05 MB/s
+     10240 KB |     9585 μs |  1043.30 MB/s |     9481 μs |  1054.74 MB/s
 
 ```
-Benchmark results go here when ready
-```
-
 <!-- BENCHMARK_END -->
 
 Run locally:
