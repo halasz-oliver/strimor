@@ -27,6 +27,11 @@ add_executable(strimor_example example.cpp)
 target_include_directories(strimor_example PRIVATE ${SODIUM_INCLUDE_DIR})
 target_link_libraries(strimor_example PRIVATE ${SODIUM_LIB_PATH})
 
+# File streaming example
+add_executable(strimor_file_stream file_stream.cpp)
+target_include_directories(strimor_file_stream PRIVATE ${SODIUM_INCLUDE_DIR})
+target_link_libraries(strimor_file_stream PRIVATE ${SODIUM_LIB_PATH})
+
 # Benchmark executable
 add_executable(strimor_benchmark benchmark.cpp)
 target_include_directories(strimor_benchmark PRIVATE ${SODIUM_INCLUDE_DIR})

@@ -1,6 +1,7 @@
 // strimor.hpp
 // started 2025 nov 3 20:01 - just hacking around after work
 // not final or safe for production (yet)
+// nov 6 update: added actual file streaming
 
 #ifndef STRIMOR_HPP
 #define STRIMOR_HPP
@@ -10,6 +11,7 @@
 #include <string>
 #include <stdexcept>
 #include <iostream>
+#include <fstream>
 #include <cstring>
 
 namespace strimor {
@@ -105,6 +107,81 @@ struct Decryptor {
         return out;
     }
 };
+
+// file streaming helpers - actually streams now instead of loading everything
+// chunk size feels good, not too big not too small
+constexpr size_t STREAM_CHUNK_SIZE = 64 * 1024; // 64 KB
+
+inline void encrypt_file(const std::string& in_path, const std::string& out_path, const Key& key) {
+    std::ifstream in(in_path, std::ios::binary);
+    if (!in) throw Error("cant open input file");
+
+    std::ofstream out(out_path, std::ios::binary);
+    if (!out) throw Error("cant open output file");
+
+    // setup encryption
+    Encryptor enc(key);
+    unsigned char header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
+    enc.start(header);
+
+    // write header first
+    out.write(reinterpret_cast<char*>(header), sizeof header);
+
+    // stream through file chunk by chunk
+    std::vector<unsigned char> buf(STREAM_CHUNK_SIZE);
+    while (in) {
+        in.read(reinterpret_cast<char*>(buf.data()), STREAM_CHUNK_SIZE);
+        const auto bytes_read = in.gcount();
+
+        if (bytes_read > 0) {
+            std::vector<unsigned char> encrypted;
+
+            // check if this is last chunk
+            if (in.peek() == EOF) {
+                encrypted = enc.update_final(buf.data(), bytes_read);
+            } else {
+                encrypted = enc.update(buf.data(), bytes_read);
+            }
+
+            out.write(reinterpret_cast<char*>(encrypted.data()), encrypted.size());
+        }
+    }
+
+    // if file was empty or ended on chunk boundary, still need final tag
+    if (in.eof() && in.gcount() == 0) {
+        auto final_chunk = enc.finalize();
+        out.write(reinterpret_cast<char*>(final_chunk.data()), final_chunk.size());
+    }
+}
+
+inline void decrypt_file(const std::string& in_path, const std::string& out_path, const Key& key) {
+    std::ifstream in(in_path, std::ios::binary);
+    if (!in) throw Error("cant open encrypted file");
+
+    std::ofstream out(out_path, std::ios::binary);
+    if (!out) throw Error("cant open output file");
+
+    // read header
+    unsigned char header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
+    in.read(reinterpret_cast<char*>(header), sizeof header);
+    if (!in) throw Error("file too short for header??");
+
+    // setup decryption
+    Decryptor dec(key);
+    dec.start(header);
+
+    // stream through encrypted chunks
+    std::vector<unsigned char> buf(STREAM_CHUNK_SIZE + crypto_secretstream_xchacha20poly1305_ABYTES);
+    while (in) {
+        in.read(reinterpret_cast<char*>(buf.data()), buf.size());
+        const auto bytes_read = in.gcount();
+
+        if (bytes_read > 0) {
+            auto decrypted = dec.update(buf.data(), bytes_read);
+            out.write(reinterpret_cast<char*>(decrypted.data()), decrypted.size());
+        }
+    }
+}
 
 } // namespace strimor
 

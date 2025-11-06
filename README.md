@@ -2,29 +2,31 @@
 
 **Streaming encryption wrapper for libsodium (C++17)**
 
-Strimor = Stream + Armor
+**Strimor = Stream + Armor**
 
-Just a weekend project to learn how libsodium's XChaCha20-Poly1305 secretstream API works. Wraps it in a simple C++ interface for authenticated encryption.
+A small weekend project to learn how libsodium’s `XChaCha20-Poly1305` secretstream API works. It wraps the API in a simple C++ interface for authenticated encryption — now with real file streaming.
 
-**Work in progress** - started this on a Sunday evening and plan to keep improving it. Expect changes and additions.
+**Work in progress.** Started this on a Sunday night and keep tweaking it whenever I feel like it. Expect rough edges and changes.
 
 ---
 
 ## Features
 
-- XChaCha20-Poly1305 authenticated encryption via libsodium
-- Simple Encryptor and Decryptor classes
-- Chunk-based encryption and decryption
-- Random key generation
-- Header-only library
-- Minimal dependencies (just libsodium)
-- Not audited, don't use in production
+* Authenticated encryption using XChaCha20-Poly1305 (libsodium)
+* Simple `Encryptor` and `Decryptor` classes
+* Chunk-based encryption/decryption
+* Actual file streaming — processes 64KB chunks, no full-file buffering
+* Random key generation
+* Header-only
+* Minimal dependencies (just libsodium)
+* Not audited — don’t use in production unless you know what you’re doing
 
 ---
 
 ## Build
 
-**macOS with Homebrew:**
+### macOS (Homebrew)
+
 ```bash
 brew install libsodium
 mkdir build && cd build
@@ -33,7 +35,8 @@ make
 ./strimor_example
 ```
 
-**Linux:**
+### Linux
+
 ```bash
 sudo apt install libsodium-dev
 mkdir build && cd build
@@ -42,118 +45,161 @@ make
 ./strimor_example
 ```
 
-You should see output like:
+You should see something like:
+
 ```
-key: 3307d32fde216aa85524f88006dba7863848411a218b333307507ef2b39525f8
+=== Strimor Examples ===
+
+generated key: 3307d32fde216aa85524f88006dba7863848411a218b333307507ef2b39525f8
+
+Example 1: In-memory encryption
+--------------------------------
+original:  hello streaming world!
 decrypted: hello streaming world!
+
+Example 2: File streaming
+--------------------------
+encrypted test_input.txt -> test_encrypted.bin
+decrypted test_encrypted.bin -> test_output.txt
+✓ files match perfectly!
 ```
 
 ---
 
 ## Usage
 
+### In-memory encryption
+
 ```cpp
 #include "strimor.hpp"
 using namespace strimor;
 
 int main() {
-    // Generate a random key
     Key key;
-    
-    // Set up encryption
+
     unsigned char header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
     Encryptor enc(key);
     enc.start(header);
-    
-    // Encrypt some data with finalization tag
+
     const char* msg = "hello world";
     auto ciphertext = enc.update_final(
-        reinterpret_cast<const unsigned char*>(msg), 
+        reinterpret_cast<const unsigned char*>(msg),
         strlen(msg)
     );
-    
-    // Set up decryption
+
     Decryptor dec(key);
     dec.start(header);
-    
-    // Decrypt
+
     auto plaintext = dec.update(ciphertext.data(), ciphertext.size());
-    
-    // plaintext now contains "hello world"
+    // plaintext == "hello world"
 }
 ```
 
-For multi-chunk encryption, use `update()` for intermediate chunks and `finalize()` for the last chunk:
+For multi-chunk encryption:
 
 ```cpp
 Encryptor enc(key);
 enc.start(header);
 
-auto chunk1 = enc.update(data1, len1);  // intermediate chunk
-auto chunk2 = enc.update(data2, len2);  // another chunk
-auto final = enc.finalize();            // final chunk with TAG_FINAL
+auto chunk1 = enc.update(data1, len1);
+auto chunk2 = enc.update(data2, len2);
+auto final  = enc.finalize();
+```
+
+### File streaming
+
+```cpp
+#include "strimor.hpp"
+using namespace strimor;
+
+int main() {
+    Key key;
+
+    encrypt_file("large_file.txt", "large_file.encrypted", key);
+    decrypt_file("large_file.encrypted", "large_file_decrypted.txt", key);
+
+    // Handles any file size, memory stays around 64KB
+}
+```
+
+Or use the CLI tool:
+
+```bash
+./strimor_file_stream encrypt myfile.txt myfile.encrypted
+./strimor_file_stream decrypt myfile.encrypted myfile_decrypted.txt
 ```
 
 ---
 
 ## How it works
 
-Uses libsodium's secretstream API which provides:
-- Authenticated encryption (can't be tampered with)
-- Message ordering and integrity
-- Protection against replay attacks
-- Extended nonce (XChaCha20) for long streams
+Strimor uses libsodium’s secretstream API, which provides:
 
-Each encrypted chunk includes an authentication tag. The header contains the initial nonce and must be transmitted along with the ciphertext.
+* Authenticated encryption (prevents tampering)
+* Ordered message integrity
+* Replay protection
+* XChaCha20’s extended nonce for long streams
+
+Each chunk is encrypted and tagged for authenticity. The header (24 bytes) stores the initial nonce and must be saved or transmitted alongside the ciphertext.
+
+File streaming flow:
+
+1. Read input file in 64KB chunks
+2. Encrypt/decrypt each chunk
+3. Write immediately to the output
+4. Move on to the next chunk
+
+This allows multi-gigabyte files to be processed without ever loading them fully into memory.
+
+Encrypted file layout:
+
+```
+[24-byte header][encrypted chunk 1][encrypted chunk 2]...[final chunk with TAG_FINAL]
+```
 
 ---
 
 ## Limitations
 
-- Chunks are buffered in memory, not true byte-by-byte streaming
-- No key derivation functions included
-- No built-in file I/O helpers
-- Basic error handling with exceptions
-- Weekend project quality code
+* No built-in key derivation (yet)
+* Minimal error handling
+* “Weekend project” quality — don’t expect enterprise polish
+* File helpers live inline in the header for simplicity
+* Chunk size fixed at 64KB (works fine so far)
 
 ---
 
 ## Notes
 
-The API is intentionally minimal. If you need more features like key derivation, password hashing, or file streaming helpers, you should probably just use libsodium directly or look for a more mature library.
+This library is intentionally minimal. If you need password-based keys, KDFs, or a more feature-rich API, you’re probably better off using libsodium directly or another library.
 
-This was mainly a learning exercise to understand how authenticated streaming encryption works under the hood.
+The main goal was to understand how authenticated streaming encryption actually works — and to test performance on large files.
 
 ---
 
 ## Performance
 
-Benchmarks run automatically on every commit (Ubuntu latest, GitHub Actions):
+Benchmarks run automatically on GitHub Actions (Ubuntu latest):
 
 <!-- BENCHMARK_START -->
-```
-Strimor Benchmark Results
-=========================
-
-Data Size  | Encrypt Time | Encrypt Speed | Decrypt Time | Decrypt Speed
------------|--------------|---------------|--------------|---------------
-         1 KB |       18 μs |    54.25 MB/s |        2 μs |   488.28 MB/s
-        10 KB |       14 μs |   697.54 MB/s |       11 μs |   887.78 MB/s
-       100 KB |      115 μs |   849.18 MB/s |      119 μs |   820.64 MB/s
-      1024 KB |     1212 μs |   825.08 MB/s |     1238 μs |   807.75 MB/s
-     10240 KB |     9562 μs |  1045.81 MB/s |     9477 μs |  1055.19 MB/s
 
 ```
+Benchmark results go here when ready
+```
+
 <!-- BENCHMARK_END -->
 
-Run benchmarks locally:
+Run locally:
+
 ```bash
 cd build
 ./strimor_benchmark
 ```
 
+The benchmarks measure in-memory operations. File streaming adds almost no extra overhead — it’s just chunked I/O.
+
 ---
 
 ## License
 
-MIT - do whatever you want with it, just don't blame me if something breaks.
+MIT — use it however you want, just don’t blame me if it breaks.
