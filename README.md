@@ -212,11 +212,11 @@ Strimor Benchmark Results
 
 Data Size  | Encrypt Time | Encrypt Speed | Decrypt Time | Decrypt Speed
 -----------|--------------|---------------|--------------|---------------
-         1 KB |       20 μs |    48.83 MB/s |        2 μs |   488.28 MB/s
-        10 KB |       13 μs |   751.20 MB/s |       11 μs |   887.78 MB/s
-       100 KB |      115 μs |   849.18 MB/s |      122 μs |   800.46 MB/s
-      1024 KB |     1216 μs |   822.37 MB/s |     1215 μs |   823.05 MB/s
-     10240 KB |     9585 μs |  1043.30 MB/s |     9481 μs |  1054.74 MB/s
+         1 KB |       15 μs |    65.10 MB/s |        2 μs |   488.28 MB/s
+        10 KB |       14 μs |   697.54 MB/s |       11 μs |   887.78 MB/s
+       100 KB |      115 μs |   849.18 MB/s |      118 μs |   827.60 MB/s
+      1024 KB |     1222 μs |   818.33 MB/s |     1242 μs |   805.15 MB/s
+     10240 KB |     9516 μs |  1050.86 MB/s |     9593 μs |  1042.43 MB/s
 
 ```
 <!-- BENCHMARK_END -->
