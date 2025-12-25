@@ -17,9 +17,10 @@ A small weekend project to learn how libsodium’s `XChaCha20-Poly1305` secretst
 * Chunk-based encryption/decryption
 * Actual file streaming — processes 64KB chunks, no full-file buffering
 * Random key generation
+* Key persistence — save/load keys, hex encoding
 * Header-only
 * Minimal dependencies (just libsodium)
-* Not audited — don’t use in production unless you know what you’re doing
+* Not audited — don't use in production unless you know what you're doing
 
 ---
 
@@ -61,7 +62,7 @@ Example 2: File streaming
 --------------------------
 encrypted test_input.txt -> test_encrypted.bin
 decrypted test_encrypted.bin -> test_output.txt
-✓ files match perfectly!
+files match perfectly!
 ```
 
 ---
@@ -128,6 +129,29 @@ Or use the CLI tool:
 ./strimor_file_stream encrypt myfile.txt myfile.encrypted
 ./strimor_file_stream decrypt myfile.encrypted myfile_decrypted.txt
 ```
+
+### Key management
+
+Keys can be saved, loaded, and shared as hex strings:
+
+```cpp
+Key key;
+
+// save to file for later use
+key.save("my_secret.key");
+
+// load it back
+auto loaded = Key::load("my_secret.key");
+
+// or share as hex string
+std::string hex = key.to_hex();
+auto from_hex = Key::from_hex(hex);
+```
+
+This is useful when you need to:
+* Keep the same key across multiple runs
+* Share keys between systems
+* Store keys in config files (use hex format)
 
 ---
 

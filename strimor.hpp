@@ -30,6 +30,39 @@ struct Key {
         sodium_bin2hex(buf, sizeof buf, data, sizeof data);
         return {buf};
     }
+
+    // parse hex string back to key - reverse of to_hex()
+    static Key from_hex(const std::string& hex) {
+        Key k{};
+        size_t bin_len;
+        if (sodium_hex2bin(k.data, sizeof k.data, hex.c_str(), hex.size(),
+                          nullptr, &bin_len, nullptr) != 0 ||
+            bin_len != sizeof k.data) {
+            throw Error("bad hex key format??");
+        }
+        return k;
+    }
+
+    // save key to file for later use
+    void save(const std::string& path) const {
+        std::ofstream f(path, std::ios::binary);
+        if (!f) throw Error("cant write key file");
+        f.write(reinterpret_cast<const char*>(data), sizeof data);
+        if (!f) throw Error("failed writing key??");
+    }
+
+    // load key from file
+    static Key load(const std::string& path) {
+        std::ifstream f(path, std::ios::binary);
+        if (!f) throw Error("cant open key file");
+
+        Key k{};
+        f.read(reinterpret_cast<char*>(k.data), sizeof k.data);
+        if (f.gcount() != sizeof k.data) {
+            throw Error("key file wrong size??");
+        }
+        return k;
+    }
 };
 
 struct Encryptor {
@@ -129,6 +162,7 @@ inline void encrypt_file(const std::string& in_path, const std::string& out_path
 
     // stream through file chunk by chunk
     std::vector<unsigned char> buf(STREAM_CHUNK_SIZE);
+    bool sent_final = false;
     while (in) {
         in.read(reinterpret_cast<char*>(buf.data()), STREAM_CHUNK_SIZE);
         const auto bytes_read = in.gcount();
@@ -139,6 +173,7 @@ inline void encrypt_file(const std::string& in_path, const std::string& out_path
             // check if this is last chunk
             if (in.peek() == EOF) {
                 encrypted = enc.update_final(buf.data(), bytes_read);
+                sent_final = true;
             } else {
                 encrypted = enc.update(buf.data(), bytes_read);
             }
@@ -147,8 +182,8 @@ inline void encrypt_file(const std::string& in_path, const std::string& out_path
         }
     }
 
-    // if file was empty or ended on chunk boundary, still need final tag
-    if (in.eof() && in.gcount() == 0) {
+    // if file was empty or we haven't sent final tag yet
+    if (!sent_final) {
         auto final_chunk = enc.finalize();
         out.write(reinterpret_cast<char*>(final_chunk.data()), final_chunk.size());
     }

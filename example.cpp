@@ -81,10 +81,17 @@ int main() {
                 break;
             }
         }
-        if (match && original.eof() && decrypted.eof()) {
-            std::cout << "✓ files match perfectly!" << std::endl;
+        // check if both reached end at the same time
+        bool both_done = original.eof() && decrypted.eof();
+        // also check if one has more data than the other
+        std::string extra;
+        if (match && !both_done) {
+            match = !(std::getline(original, extra) || std::getline(decrypted, extra));
+        }
+        if (match) {
+            std::cout << "files match perfectly!" << std::endl;
         } else {
-            std::cout << "✗ something went wrong" << std::endl;
+            std::cout << "something went wrong" << std::endl;
         }
 
     } catch (const Error& e) {
